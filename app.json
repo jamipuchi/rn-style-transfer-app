@@ -1,0 +1,12 @@
+{
+  "name": "style-transfer",
+  "displayName": "style-transfer",
+  "expo": {
+    "name": "style-transfer",
+    "slug": "style-transfer",
+    "version": "1.0.0",
+    "assetBundlePatterns": [
+      "**/*"
+    ]
+  }
+}
