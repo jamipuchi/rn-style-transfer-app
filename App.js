@@ -22,6 +22,7 @@ import Icon from "react-native-vector-icons/Ionicons";
 import apiKey from "./config";
 import LinearGradient from "react-native-linear-gradient";
 import { createShimmerPlaceholder } from "react-native-shimmer-placeholder";
+import styles, { isDarkMode } from "./styles/AppStyles";
 
 const ShimmerPlaceHolder = createShimmerPlaceholder(LinearGradient);
 
@@ -65,8 +66,6 @@ const activeEnvironment = environment.LOCALHOST;
 const CHOOSING = "CHOOSING";
 const CONVERTING = "CONVERTING";
 const CONVERTED = "CONVERTED";
-
-const isDarkMode = Appearance.getColorScheme() === "dark";
 
 export default class App extends Component {
   constructor(props) {
@@ -342,20 +341,14 @@ export default class App extends Component {
     return (
       <Animated.View
         style={{
-          width: "100%",
-          height: "100%",
+          ...styles.imageContainer,
           transform: [{ translateY: this.state.marginTopAnim }],
-          paddingBottom: 220,
         }}
       >
         <TouchableOpacity
           disabled={this.state.display != CHOOSING}
           onPress={this.chooseImage}
-          style={{
-            height: "100%",
-            borderRadius: 10,
-            overflow: "hidden",
-          }}
+          style={styles.imageTouchable}
         >
           {this.state.fileUri || this.state.display === CONVERTED ? (
             <Animated.Image
@@ -368,20 +361,10 @@ export default class App extends Component {
             <View
               style={{
                 ...styles.images,
-                backgroundColor: isDarkMode ? "#1C1C1EFF" : "#D1D1D6FF",
-                aligncontent: "center",
-                justifyContent: "center",
-                alignItems: "center",
+                ...styles.noImageView,
               }}
             >
-              <Text
-                style={{
-                  textAlign: "center",
-                  fontSize: 20,
-                  paddingBottom: 10,
-                  color: !isDarkMode ? "#3C3C434D" : "#EBEBF54D",
-                }}
-              >
+              <Text style={styles.noImageViewText}>
                 Click here to choose an image
               </Text>
             </View>
@@ -393,12 +376,7 @@ export default class App extends Component {
 
   render() {
     return (
-      <SafeAreaView
-        style={{
-          backgroundColor: !isDarkMode ? "#F2F2F7FF" : "#000000",
-          paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
-        }}
-      >
+      <SafeAreaView style={styles.background}>
         <StatusBar />
         <View
           style={{
@@ -410,21 +388,12 @@ export default class App extends Component {
           {this.state.display == CONVERTED && (
             <Animated.View
               style={{
-                position: "absolute",
-                top: 20,
-                right: 20,
-                left: 20,
-                height: 30,
+                ...styles.topButtonsContainer,
                 opacity: this.state.topButtonsOpacity,
               }}
             >
               <TouchableOpacity
-                style={{
-                  position: "absolute",
-                  right: 0,
-                  width: 30,
-                  height: 30,
-                }}
+                style={styles.btnSavePicture}
                 onPress={this.savePicture}
               >
                 <Icon
@@ -435,12 +404,7 @@ export default class App extends Component {
                 />
               </TouchableOpacity>
               <TouchableOpacity
-                style={{
-                  position: "absolute",
-                  left: 0,
-                  width: 30,
-                  height: 30,
-                }}
+                style={styles.btnBack}
                 onPress={() => this.toChoosing()}
               >
                 <Icon
@@ -463,46 +427,25 @@ export default class App extends Component {
             {this.state.display === CHOOSING && (
               <Animated.View
                 style={{
-                  width: "100%",
-                  height: "100%",
+                  ...styles.bottomContainer,
                   opacity: this.state.selectionOpacity,
                 }}
               >
-                <ScrollView
-                  style={{ marginLeft: -20, marginRight: -20 }}
-                  horizontal={true}
-                >
+                <ScrollView style={styles.stylesScrollView} horizontal={true}>
                   {this.state.imageStyles.length !== 0
                     ? this.state.imageStyles.map((image, index, arr) => (
                         <TouchableOpacity
                           key={image.name}
                           style={{
-                            width: 120,
-                            height: 120,
-                            marginLeft: 20,
+                            ...styles.styleCard,
                             marginRight: index === arr.length - 1 ? 20 : 0,
-                            borderRadius: 7,
-                            overflow: "hidden",
                           }}
                           onPress={() =>
                             this.setState({ selectedStyle: index })
                           }
                         >
                           {this.state.selectedStyle == index && (
-                            <View
-                              style={{
-                                position: "absolute",
-                                top: 0,
-                                bottom: 0,
-                                left: 0,
-                                right: 0,
-                                backgroundColor: "rgba(255, 255, 255, 0.2)",
-                                display: "flex",
-                                justifyContent: "center",
-                                alignItems: "center",
-                                zIndex: 2,
-                              }}
-                            >
+                            <View style={styles.styleWhiteOverlay}>
                               <Icon
                                 name="ios-checkmark-circle-outline"
                                 size={40}
@@ -512,7 +455,7 @@ export default class App extends Component {
                             </View>
                           )}
                           <Image
-                            style={{ height: "100%", width: "100%" }}
+                            style={styles.styleImage}
                             source={{ uri: image.display_image }}
                           />
                         </TouchableOpacity>
@@ -526,12 +469,8 @@ export default class App extends Component {
                           }
                           duration={2000}
                           style={{
-                            width: 120,
-                            height: 120,
-                            marginLeft: 20,
+                            ...styles.styleCard,
                             marginRight: index === arr.length - 1 ? 20 : 0,
-                            borderRadius: 7,
-                            overflow: "hidden",
                           }}
                         />
                       ))}
@@ -560,20 +499,11 @@ export default class App extends Component {
             {this.state.display === CONVERTED && (
               <Animated.View
                 style={{
-                  display: "flex",
-                  flexDirection: "column",
+                  ...styles.premiumContainer,
                   opacity: this.state.topButtonsOpacity,
                 }}
               >
-                <Text
-                  style={{
-                    color: isDarkMode ? "white" : "black",
-                    width: "100%",
-                    alignSelf: "stretch",
-                    textAlign: "center",
-                  }}
-                  adjustsFontSizeToFit
-                >
+                <Text style={styles.premiumCTA} adjustsFontSizeToFit>
                   Do you want your photos to have full quality?
                 </Text>
                 <TouchableOpacity
@@ -592,14 +522,7 @@ export default class App extends Component {
                 >
                   <LinearGradient
                     colors={["#203a43", "#2c5364"]}
-                    style={{
-                      height: 50,
-                      alignItems: "center",
-                      justifyContent: "center",
-                      borderRadius: 7,
-                      marginBottom: 10,
-                      marginTop: 20,
-                    }}
+                    style={styles.btnPremium}
                     start={{ x: 1, y: 0 }}
                     end={{ x: 0, y: 0 }}
                     onPress={() => this.toChoosing()}
@@ -615,46 +538,3 @@ export default class App extends Component {
     );
   }
 }
-
-const styles = StyleSheet.create({
-  body: {
-    height: "100%",
-    width: "100%",
-    paddingLeft: 20,
-    paddingRight: 20,
-  },
-  images: {
-    width: "100%",
-    height: "100%",
-  },
-  btnParentSection: {
-    alignItems: "center",
-    marginTop: 10,
-  },
-  btnSection: {
-    width: "100%",
-    height: 50,
-    backgroundColor: "#006ee6",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 7,
-    marginBottom: 10,
-    marginTop: 20,
-  },
-  cancelButton: {
-    width: "100%",
-    height: 50,
-    backgroundColor: "#181818",
-    alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 7,
-    marginBottom: 10,
-    marginTop: 20,
-  },
-  btnText: {
-    textAlign: "center",
-    color: "white",
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-});
