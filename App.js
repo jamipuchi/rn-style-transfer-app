@@ -297,9 +297,7 @@ export default class App extends Component {
           },
         })
           .then((response) => response.blob())
-          .then((images) => {
-            this.setState({ fileUri: URL.createObjectURL(images) });
-          })
+          .then((images) => this.toConverted(URL.createObjectURL(images)))
           .catch((error) => {
             this.toChoosing();
             Alert.alert(
@@ -319,9 +317,7 @@ export default class App extends Component {
           },
         })
           .then((response) => response.blob())
-          .then((images) => {
-            this.setState({ fileUri: URL.createObjectURL(images) });
-          })
+          .then((images) => this.toConverted(URL.createObjectURL(images)))
           .catch((error) => {
             this.toChoosing();
             Alert.alert(
