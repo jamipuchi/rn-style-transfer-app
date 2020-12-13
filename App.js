@@ -237,18 +237,14 @@ export default class App extends Component {
   };
 
   getAvailableStylesFromEndpoint = async () => {
-    setTimeout(
-      () =>
-        fetch("http://localhost:8000/api/styles")
-          .then((response) => response.json())
-          .then((data) => {
-            console.log(data.styles);
-            this.setState({
-              imageStyles: data.styles,
-            });
-          }),
-      5000
-    );
+    fetch("http://localhost:8000/api/styles")
+      .then((response) => response.json())
+      .then((data) => {
+        console.log(data.styles);
+        this.setState({
+          imageStyles: data.styles,
+        });
+      });
   };
 
   getImageFromEndpoint = async () => {
