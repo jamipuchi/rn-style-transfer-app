@@ -20,18 +20,51 @@ import {
 import CameraRoll from "@react-native-community/cameraroll";
 import Icon from "react-native-vector-icons/Ionicons";
 import apiKey from "./config";
+import LinearGradient from "react-native-linear-gradient";
+import { createShimmerPlaceholder } from "react-native-shimmer-placeholder";
+
+const ShimmerPlaceHolder = createShimmerPlaceholder(LinearGradient);
+
+const environment = {
+  NONE: 0,
+  PROD: 1,
+  LOCALHOST: 2,
+  THIRD_PARTY: 3,
+};
+
+const paintingStyles = [
+  {
+    display_image:
+      "http://teresabernardart.com/wp-content/uploads/2015/08/painterly-art-style-Matisse_-_Vase_of_Sunflowers_1898.jpg",
+    name: "Vase of sunflowers",
+  },
+  {
+    display_image:
+      "http://teresabernardart.com/wp-content/uploads/2015/08/example-of-impressionistic-Camille_Pissarro.jpg",
+    name: "Camille Pissarro",
+  },
+  {
+    display_image:
+      "http://teresabernardart.com/wp-content/uploads/2015/08/example-of-abstract-art-by-Robert-Delaunay.jpg",
+    name: "Abstract",
+  },
+  {
+    display_image:
+      "http://teresabernardart.com/wp-content/uploads/2015/08/example-of-surrealism-the-persistance-of-memory.jpg",
+    name: "Surrealism",
+  },
+  {
+    display_image:
+      "http://teresabernardart.com/wp-content/uploads/2015/08/andy-warhol-pop-art.jpg",
+    name: "Pop art",
+  },
+];
+
+const activeEnvironment = environment.LOCALHOST;
 
 const CHOOSING = "CHOOSING";
 const CONVERTING = "CONVERTING";
 const CONVERTED = "CONVERTED";
-
-const paintingStyles = [
-  "http://teresabernardart.com/wp-content/uploads/2015/08/painterly-art-style-Matisse_-_Vase_of_Sunflowers_1898.jpg",
-  "http://teresabernardart.com/wp-content/uploads/2015/08/example-of-impressionistic-Camille_Pissarro.jpg",
-  "http://teresabernardart.com/wp-content/uploads/2015/08/example-of-abstract-art-by-Robert-Delaunay.jpg",
-  "http://teresabernardart.com/wp-content/uploads/2015/08/example-of-surrealism-the-persistance-of-memory.jpg",
-  "http://teresabernardart.com/wp-content/uploads/2015/08/andy-warhol-pop-art.jpg",
-];
 
 const isDarkMode = Appearance.getColorScheme() === "dark";
 
@@ -47,7 +80,9 @@ export default class App extends Component {
       selectionOpacity: new Animated.Value(1),
       cancelOpacity: new Animated.Value(0),
       topButtonsOpacity: new Animated.Value(0),
-      imageBlurRadius: new Animated.Value(0),
+      changedImage: false,
+      imageStyles:
+        activeEnvironment === environment.THIRD_PARTY ? paintingStyles : [],
     };
   }
 
@@ -57,6 +92,9 @@ export default class App extends Component {
         this.toChoosing;
       }
     });
+    if (activeEnvironment !== environment.THIRD_PARTY) {
+      this.getAvailableStylesFromEndpoint();
+    }
   }
 
   toChoosing = () => {
@@ -135,20 +173,7 @@ export default class App extends Component {
     }).start(() => {
       if (this.state.display === CONVERTING) {
         this.setState({ display: CONVERTED });
-        Animated.timing(this.state.imageBlurRadius, {
-          useNativeDriver: false,
-          toValue: 20,
-          duration: 1000,
-          easing: Easing.inOut(Easing.ease),
-        }).start(() => {
-          this.setState({ fileUri: url });
-          Animated.timing(this.state.imageBlurRadius, {
-            useNativeDriver: false,
-            toValue: 0,
-            duration: 1000,
-            easing: Easing.inOut(Easing.ease),
-          }).start();
-        });
+        this.setState({ fileUri: url });
         Animated.timing(this.state.topButtonsOpacity, {
           useNativeDriver: true,
           toValue: 1,
@@ -195,8 +220,6 @@ export default class App extends Component {
       tintColor: isDarkMode ? "white" : "black",
     };
     ImagePicker.showImagePicker(options, (response) => {
-      console.log("Response = ", response);
-
       if (response.didCancel) {
         console.log("User cancelled image picker");
       } else if (response.error) {
@@ -213,30 +236,114 @@ export default class App extends Component {
     });
   };
 
-  getImageFromEndpoint = async () => {
-    var myHeaders = new Headers();
-    myHeaders.append("api-key", apiKey);
+  getAvailableStylesFromEndpoint = async () => {
+    setTimeout(
+      () =>
+        fetch("http://localhost:8000/api/styles")
+          .then((response) => response.json())
+          .then((data) => {
+            console.log(data.styles);
+            this.setState({
+              imageStyles: data.styles,
+            });
+          }),
+      5000
+    );
+  };
 
-    var formdata = new FormData();
-    formdata.append("content", {
+  getImageFromEndpoint = async () => {
+    const photo = {
       uri: this.state.fileUri,
       type: "image/jpeg",
       name: "photo.jpg",
-    }), //this.state.fileUri);
-      formdata.append("style", paintingStyles[this.state.selectedStyle]);
-
-    var requestOptions = {
-      method: "POST",
-      headers: myHeaders,
-      body: formdata,
     };
+    const form = new FormData();
+    form.append("file", photo);
+    form.append("style", "starry");
 
-    fetch("https://api.deepai.org/api/fast-style-transfer", requestOptions)
-      .then((response) => response.json())
-      .then((result) => {
-        this.toConverted(result.output_url);
-      })
-      .catch((error) => console.log("error", error));
+    switch (activeEnvironment) {
+      case environment.THIRD_PARTY:
+        var myHeaders = new Headers();
+        myHeaders.append("api-key", apiKey);
+
+        var formdata = new FormData();
+        formdata.append("content", {
+          uri: this.state.fileUri,
+          type: "image/jpeg",
+          name: "photo.jpg",
+        }), //this.state.fileUri);
+          formdata.append(
+            "style",
+            paintingStyles[this.state.selectedStyle].display_image
+          );
+
+        var requestOptions = {
+          method: "POST",
+          headers: myHeaders,
+          body: formdata,
+        };
+
+        fetch("https://api.deepai.org/api/fast-style-transfer", requestOptions)
+          .then((response) => response.json())
+          .then((result) => {
+            console.log(result);
+            this.toConverted(result.output_url);
+          })
+          .catch((error) => console.log("error", error));
+
+        break;
+      case environment.PROD:
+        fetch("http://51.38.233.111:8000/api/stylize/", {
+          body: form,
+          method: "POST",
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        })
+          .then((response) => response.blob())
+          .then((images) => {
+            this.setState({ fileUri: URL.createObjectURL(images) });
+          })
+          .catch((error) => {
+            this.toChoosing();
+            Alert.alert(
+              "Error",
+              "Please check your internet connection and try again",
+              [{ text: "OK" }],
+              { cancelable: false }
+            );
+          });
+        break;
+      case environment.LOCALHOST:
+        fetch("http://127.0.0.1:8000/api/stylize/", {
+          body: form,
+          method: "POST",
+          headers: {
+            "Content-Type": "multipart/form-data",
+          },
+        })
+          .then((response) => response.blob())
+          .then((images) => {
+            this.setState({ fileUri: URL.createObjectURL(images) });
+          })
+          .catch((error) => {
+            this.toChoosing();
+            Alert.alert(
+              "Error",
+              "Please check your internet connection and try again",
+              [{ text: "OK" }],
+              { cancelable: false }
+            );
+          });
+        break;
+      case environment.NONE:
+        // code block
+        setTimeout(() => this.toConverted(this.state.fileUri), 1000);
+        break;
+      default:
+        console.log("PLEASE SET YOUR ENVIRONMENT VARIABLE " + environment);
+        break;
+    }
   };
 
   renderFileUri() {
@@ -260,7 +367,6 @@ export default class App extends Component {
         >
           {this.state.fileUri || this.state.display === CONVERTED ? (
             <Animated.Image
-              blurRadius={this.state.imageBlurRadius}
               source={{
                 uri: this.state.fileUri,
               }}
@@ -332,7 +438,7 @@ export default class App extends Component {
                 <Icon
                   name="ios-download"
                   size={30}
-                  color={!this.state.isDarkMode ? "#FFF" : "#000"}
+                  color={isDarkMode ? "white" : "black"}
                   type="Ionicons"
                 />
               </TouchableOpacity>
@@ -348,7 +454,7 @@ export default class App extends Component {
                 <Icon
                   name="ios-arrow-back"
                   size={30}
-                  color={!this.state.isDarkMode ? "#FFF" : "#000"}
+                  color={isDarkMode ? "white" : "black"}
                   type="Ionicons"
                 />
               </TouchableOpacity>
@@ -374,49 +480,69 @@ export default class App extends Component {
                   style={{ marginLeft: -20, marginRight: -20 }}
                   horizontal={true}
                 >
-                  {paintingStyles.map((image, index, arr) => (
-                    <TouchableOpacity
-                      key={image}
-                      style={{
-                        height: "100%",
-                        width: 120,
-                        height: 120,
-                        marginLeft: 20,
-                        marginRight: index === arr.length - 1 ? 20 : 0,
-                        borderRadius: 7,
-                        overflow: "hidden",
-                      }}
-                      onPress={() => this.setState({ selectedStyle: index })}
-                    >
-                      {this.state.selectedStyle == index && (
-                        <View
+                  {this.state.imageStyles.length !== 0
+                    ? this.state.imageStyles.map((image, index, arr) => (
+                        <TouchableOpacity
+                          key={image.name}
                           style={{
-                            position: "absolute",
-                            top: 0,
-                            bottom: 0,
-                            left: 0,
-                            right: 0,
-                            backgroundColor: "rgba(255, 255, 255, 0.2)",
-                            display: "flex",
-                            justifyContent: "center",
-                            alignItems: "center",
-                            zIndex: 2,
+                            width: 120,
+                            height: 120,
+                            marginLeft: 20,
+                            marginRight: index === arr.length - 1 ? 20 : 0,
+                            borderRadius: 7,
+                            overflow: "hidden",
                           }}
+                          onPress={() =>
+                            this.setState({ selectedStyle: index })
+                          }
                         >
-                          <Icon
-                            name="ios-checkmark-circle-outline"
-                            size={40}
-                            color={!this.state.isDarkMode ? "#FFF" : "#000"}
-                            type="Ionicons"
+                          {this.state.selectedStyle == index && (
+                            <View
+                              style={{
+                                position: "absolute",
+                                top: 0,
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                backgroundColor: "rgba(255, 255, 255, 0.2)",
+                                display: "flex",
+                                justifyContent: "center",
+                                alignItems: "center",
+                                zIndex: 2,
+                              }}
+                            >
+                              <Icon
+                                name="ios-checkmark-circle-outline"
+                                size={40}
+                                color={isDarkMode ? "#FFF" : "#000"}
+                                type="Ionicons"
+                              />
+                            </View>
+                          )}
+                          <Image
+                            style={{ height: "100%", width: "100%" }}
+                            source={{ uri: image.display_image }}
                           />
-                        </View>
-                      )}
-                      <Image
-                        style={{ height: "100%", width: "100%" }}
-                        source={{ uri: image }}
-                      />
-                    </TouchableOpacity>
-                  ))}
+                        </TouchableOpacity>
+                      ))
+                    : [1, 2, 3, 4, 5].map((num, index, arr) => (
+                        <ShimmerPlaceHolder
+                          shimmerColors={
+                            isDarkMode
+                              ? ["#1C1C1EFF", "black", "#1C1C1EFF"]
+                              : ["#D1D1D6FF", "white", "#D1D1D6FF"]
+                          }
+                          duration={2000}
+                          style={{
+                            width: 120,
+                            height: 120,
+                            marginLeft: 20,
+                            marginRight: index === arr.length - 1 ? 20 : 0,
+                            borderRadius: 7,
+                            overflow: "hidden",
+                          }}
+                        />
+                      ))}
                 </ScrollView>
 
                 <TouchableOpacity
@@ -432,10 +558,62 @@ export default class App extends Component {
             {this.state.display === CONVERTING && (
               <Animated.View style={{ opacity: this.state.cancelOpacity }}>
                 <TouchableOpacity
-                  style={styles.btnSection}
+                  style={styles.cancelButton}
                   onPress={() => this.toChoosing()}
                 >
                   <Text style={styles.btnText}>Cancel</Text>
+                </TouchableOpacity>
+              </Animated.View>
+            )}
+            {this.state.display === CONVERTED && (
+              <Animated.View
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  opacity: this.state.topButtonsOpacity,
+                }}
+              >
+                <Text
+                  style={{
+                    color: isDarkMode ? "white" : "black",
+                    width: "100%",
+                    alignSelf: "stretch",
+                    textAlign: "center",
+                  }}
+                  adjustsFontSizeToFit
+                >
+                  Do you want your photos to have full quality?
+                </Text>
+                <TouchableOpacity
+                  onPress={() =>
+                    Alert.alert(
+                      "You need to pay to unlock this feature",
+                      "You need to pay just a little bit but it will be worth it",
+                      [
+                        {
+                          text: "OK",
+                        },
+                      ],
+                      { cancelable: false }
+                    )
+                  }
+                >
+                  <LinearGradient
+                    colors={["#203a43", "#2c5364"]}
+                    style={{
+                      height: 50,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 7,
+                      marginBottom: 10,
+                      marginTop: 20,
+                    }}
+                    start={{ x: 1, y: 0 }}
+                    end={{ x: 0, y: 0 }}
+                    onPress={() => this.toChoosing()}
+                  >
+                    <Text style={styles.btnText}>Buy premium</Text>
+                  </LinearGradient>
                 </TouchableOpacity>
               </Animated.View>
             )}
@@ -465,6 +643,16 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 50,
     backgroundColor: "#006ee6",
+    alignItems: "center",
+    justifyContent: "center",
+    borderRadius: 7,
+    marginBottom: 10,
+    marginTop: 20,
+  },
+  cancelButton: {
+    width: "100%",
+    height: 50,
+    backgroundColor: "#181818",
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 7,
