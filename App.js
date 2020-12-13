@@ -255,7 +255,7 @@ export default class App extends Component {
     };
     const form = new FormData();
     form.append("file", photo);
-    form.append("style", "starry");
+    form.append("style", this.state.imageStyles[this.state.selectedStyle].name);
 
     switch (activeEnvironment) {
       case environment.THIRD_PARTY:
