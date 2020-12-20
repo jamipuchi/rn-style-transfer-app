@@ -61,6 +61,12 @@ export default StyleSheet.create({
     width: 30,
     height: 30,
   },
+  btnSharePicture: {
+    position: "absolute",
+    right: 40,
+    width: 30,
+    height: 30,
+  },
   btnBack: {
     position: "absolute",
     left: 0,

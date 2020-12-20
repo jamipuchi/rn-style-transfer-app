@@ -2,7 +2,6 @@ import React, { Fragment, Component } from "react";
 import ImagePicker from "react-native-image-picker";
 import {
   SafeAreaView,
-  StyleSheet,
   ScrollView,
   View,
   Text,
@@ -10,7 +9,6 @@ import {
   Animated,
   Easing,
   TouchableOpacity,
-  Appearance,
   Alert,
   Platform,
   PermissionsAndroid,
@@ -23,6 +21,9 @@ import apiKey from "./config";
 import LinearGradient from "react-native-linear-gradient";
 import { createShimmerPlaceholder } from "react-native-shimmer-placeholder";
 import styles, { isDarkMode } from "./styles/AppStyles";
+import styleImage from "./clients/StylizeClient";
+import ImageResizer from "react-native-image-resizer";
+import Share from "react-native-share";
 
 const ShimmerPlaceHolder = createShimmerPlaceholder(LinearGradient);
 
@@ -227,10 +228,22 @@ export default class App extends Component {
         console.log("User tapped custom button: ", response.customButton);
         alert(response.customButton);
       } else {
-        const source = { uri: response.uri };
-        this.setState({
-          fileUri: "data:image/jpeg;base64," + response.data,
+        ImageResizer.createResizedImage(
+          response.uri,
+          500,
+          500,
+          "JPEG",
+          90,
+          0,
+          undefined,
+          false,
+          { mode: "cover", onlyScaleDown: false }
+        ).then((response) => {
+          this.setState({
+            fileUri: response.uri,
+          });
         });
+        const source = { uri: response.uri };
       }
     });
   };
@@ -281,7 +294,6 @@ export default class App extends Component {
         fetch("https://api.deepai.org/api/fast-style-transfer", requestOptions)
           .then((response) => response.json())
           .then((result) => {
-            console.log(result);
             this.toConverted(result.output_url);
           })
           .catch((error) => console.log("error", error));
@@ -308,24 +320,9 @@ export default class App extends Component {
           });
         break;
       case environment.LOCALHOST:
-        fetch("http://127.0.0.1:8000/api/stylize/", {
-          body: form,
-          method: "POST",
-          headers: {
-            "Content-Type": "multipart/form-data",
-          },
-        })
-          .then((response) => response.blob())
-          .then((images) => this.toConverted(URL.createObjectURL(images)))
-          .catch((error) => {
-            this.toChoosing();
-            Alert.alert(
-              "Error",
-              "Please check your internet connection and try again",
-              [{ text: "OK" }],
-              { cancelable: false }
-            );
-          });
+        const style = this.state.imageStyles[this.state.selectedStyle].name;
+        const stylizedImage = await styleImage(this.state.fileUri, style);
+        this.toConverted(stylizedImage);
         break;
       case environment.NONE:
         // code block
@@ -409,6 +406,26 @@ export default class App extends Component {
               >
                 <Icon
                   name="ios-arrow-back"
+                  size={30}
+                  color={isDarkMode ? "white" : "black"}
+                  type="Ionicons"
+                />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.btnSharePicture}
+                onPress={() => {
+                  console.log(this.state.fileUri);
+                  Share.open({ url: this.state.fileUri })
+                    .then((res) => {
+                      console.log(res);
+                    })
+                    .catch((err) => {
+                      err && console.log(err);
+                    });
+                }}
+              >
+                <Icon
+                  name="ios-share"
                   size={30}
                   color={isDarkMode ? "white" : "black"}
                   type="Ionicons"
