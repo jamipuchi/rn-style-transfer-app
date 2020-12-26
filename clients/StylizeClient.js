@@ -1,3 +1,5 @@
+import RNFetchBlob from "rn-fetch-blob";
+
 export default async (fileUri, style) => {
   const photo = {
     uri: fileUri,
@@ -8,17 +10,30 @@ export default async (fileUri, style) => {
   form.append("file", photo);
   form.append("style", style);
 
-  console.log(fileUri, style);
+  const base64 =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAOEAAADhCAMAAAAJbSJIAAAAA1BMVEX///+nxBvIAAAASElEQVR4nO3BgQAAAADDoPlTX+AIVQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADwDcaiAAFXD1ujAAAAAElFTkSuQmCC";
 
-  return fetch("http://127.0.0.1:8000/api/stylize/", {
-    body: form,
-    method: "POST",
-    headers: {
+  return RNFetchBlob.fetch(
+    "POST",
+    "http://127.0.0.1:8000/api/stylize/",
+    {
       "Content-Type": "multipart/form-data",
     },
-  })
-    .then((response) => response.blob())
-    .then((image) => URL.createObjectURL(image))
+    [
+      {
+        name: "file",
+        filename: "image.png",
+        type: "image/png",
+        data: base64,
+      },
+      { name: "style", data: style },
+    ]
+  )
+    .then((res) => {
+      console.log("----------------RESPONSE----------------");
+      console.log(res.info());
+      console.log("----------------RESPONSE----------------");
+    })
     .catch((error) => {
       //   Alert.alert(
       //     "Error",
