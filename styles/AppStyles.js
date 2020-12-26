@@ -23,7 +23,7 @@ export default StyleSheet.create({
     marginTop: 10,
   },
   btnSection: {
-    width: "100%",
+    width: "80%",
     height: 50,
     backgroundColor: "#006ee6",
     alignItems: "center",
@@ -120,7 +120,7 @@ export default StyleSheet.create({
     marginBottom: 10,
     marginTop: 20,
   },
-  imageContainer: { width: "100%", height: "100%", paddingBottom: 220 },
+  imageContainer: { width: "100%", height: "100%" },
   imageTouchable: {
     height: "100%",
     borderRadius: 10,

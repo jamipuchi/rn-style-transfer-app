@@ -17,6 +17,7 @@ import {
 } from "react-native";
 import CameraRoll from "@react-native-community/cameraroll";
 import Icon from "react-native-vector-icons/Ionicons";
+import IconAlt from "react-native-vector-icons/Entypo";
 import apiKey from "./config";
 import LinearGradient from "react-native-linear-gradient";
 import { createShimmerPlaceholder } from "react-native-shimmer-placeholder";
@@ -64,7 +65,8 @@ const paintingStyles = [
 
 const activeEnvironment = environment.LOCALHOST;
 
-const CHOOSING = "CHOOSING";
+const CHOOSING_MODIFICATION = "CHOOSING_MODIFICATION";
+const CHOOSING_STYLE = "CHOOSING_STYLE";
 const CONVERTING = "CONVERTING";
 const CONVERTED = "CONVERTED";
 
@@ -74,12 +76,14 @@ export default class App extends Component {
     this.state = {
       fileUri: "",
       selectedStyle: 0,
-      display: CHOOSING,
+      display: CHOOSING_MODIFICATION,
       marginTopAnim: new Animated.Value(0),
       marginBottomAnim: new Animated.Value(220),
       selectionOpacity: new Animated.Value(1),
       cancelOpacity: new Animated.Value(0),
       topButtonsOpacity: new Animated.Value(0),
+      imageSpacing: new Animated.Value(220),
+      choosingSpacing: new Animated.Value(0),
       changedImage: false,
       imageStyles:
         activeEnvironment === environment.THIRD_PARTY ? paintingStyles : [],
@@ -88,7 +92,7 @@ export default class App extends Component {
 
   componentDidMount() {
     this.backHandler = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (this.state.display !== CHOOSING) {
+      if (this.state.display !== CHOOSING_STYLE) {
         this.toChoosing;
       }
     });
@@ -97,17 +101,64 @@ export default class App extends Component {
     }
   }
 
-  toChoosing = () => {
-    this.setState({ display: CHOOSING });
+  toMain = () => {
+    Animated.timing(this.state.choosingSpacing, {
+      useNativeDriver: false,
+      toValue: 0,
+      duration: 500,
+      easing: Easing.inOut(Easing.ease),
+    }).start();
+    Animated.timing(this.state.selectionOpacity, {
+      useNativeDriver: false,
+      toValue: 0,
+      duration: 300,
+      easing: Easing.inOut(Easing.ease),
+    }).start();
+  };
+
+  toChoosing = (fromMain = false) => {
+    if (this.state.fileUri == "") {
+      this.chooseImage();
+      return;
+    }
+
+    Animated.timing(this.state.choosingSpacing, {
+      useNativeDriver: false,
+      toValue: 400,
+      duration: 500,
+      easing: Easing.inOut(Easing.ease),
+    }).start();
+
+    Animated.timing(this.state.selectionOpacity, {
+      useNativeDriver: false,
+      toValue: 0,
+      duration: 0,
+      easing: Easing.inOut(Easing.ease),
+    }).start();
+
+    this.setState({ display: CHOOSING_STYLE });
+    Animated.timing(this.state.selectionOpacity, {
+      useNativeDriver: false,
+      toValue: 0,
+      duration: 0,
+      easing: Easing.inOut(Easing.ease),
+    }).start();
+    Animated.timing(this.state.imageSpacing, {
+      useNativeDriver: false,
+      toValue: 220,
+      delay: 0,
+      duration: 500,
+      easing: Easing.inOut(Easing.ease),
+    }).start();
     Animated.timing(this.state.selectionOpacity, {
       useNativeDriver: false,
       toValue: 1,
-      delay: 300,
+      delay: fromMain ? 100 : 300,
       duration: 100,
       easing: Easing.inOut(Easing.ease),
     }).start();
     Animated.timing(this.state.marginTopAnim, {
-      useNativeDriver: true,
+      useNativeDriver: false,
       toValue: 0,
       duration: 400,
       easing: Easing.inOut(Easing.ease),
@@ -140,7 +191,7 @@ export default class App extends Component {
       easing: Easing.inOut(Easing.ease),
     }).start();
     Animated.timing(this.state.marginTopAnim, {
-      useNativeDriver: true,
+      useNativeDriver: false,
       toValue: 100,
       duration: 400,
       easing: Easing.inOut(Easing.ease),
@@ -340,10 +391,14 @@ export default class App extends Component {
         style={{
           ...styles.imageContainer,
           transform: [{ translateY: this.state.marginTopAnim }],
+          paddingBottom: this.state.imageSpacing,
         }}
       >
         <TouchableOpacity
-          disabled={this.state.display != CHOOSING}
+          disabled={
+            this.state.display === CONVERTING ||
+            this.state.display === CONVERTED
+          }
           onPress={this.chooseImage}
           style={styles.imageTouchable}
         >
@@ -441,7 +496,53 @@ export default class App extends Component {
               left: 20,
             }}
           >
-            {this.state.display === CHOOSING && (
+            {(this.state.display === CHOOSING_MODIFICATION ||
+              this.state.display === CHOOSING_STYLE) && (
+              <Animated.View
+                style={{
+                  position: "absolute",
+                  bottom: 0,
+                  flexWrap: "wrap",
+                  backgroundColor: "#121212",
+                  height: 250,
+                  marginLeft: -20,
+                  marginRight: -20,
+                  marginBottom: -50,
+                  borderRadius: 20,
+                  flexDirection: "row",
+                  justifyContent: "space-around",
+                  padding: 20,
+                  transform: [{ translateY: this.state.choosingSpacing }],
+                  zIndex: 100,
+                }}
+              >
+                {[1, 2, 3, 4, 5, 6].map(() => (
+                  <TouchableOpacity
+                    style={{
+                      aspectRatio: 1,
+                      backgroundColor: "#1C1C1EFF",
+                      height: 75,
+                      borderRadius: 50,
+                      marginBottom: 20,
+                      alignContent: "center",
+                      justifyContent: "center",
+                      alignItems: "center",
+                    }}
+                    onPress={() => {
+                      this.toChoosing(true);
+                    }}
+                  >
+                    <Icon
+                      name="ios-checkmark-circle-outline"
+                      size={60}
+                      color={isDarkMode ? "#000" : "#FFF"}
+                      type="Ionicons"
+                    />
+                  </TouchableOpacity>
+                ))}
+              </Animated.View>
+            )}
+            {this.state.display === CHOOSING_STYLE && (
               <Animated.View
                 style={{
                   ...styles.bottomContainer,
@@ -492,15 +593,35 @@ export default class App extends Component {
                         />
                       ))}
                 </ScrollView>
-
-                <TouchableOpacity
-                  style={{ ...styles.btnSection }}
-                  onPress={() => {
-                    this.toConverting();
-                  }}
-                >
-                  <Text style={styles.btnText}>Convert</Text>
-                </TouchableOpacity>
+                <View style={{ flexDirection: "row" }}>
+                  <TouchableOpacity
+                    style={{
+                      width: "20%",
+                      height: 50,
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: 7,
+                      marginBottom: 10,
+                      marginTop: 20,
+                    }}
+                    onPress={this.toMain}
+                  >
+                    <IconAlt
+                      name="chevron-up"
+                      size={40}
+                      color={isDarkMode ? "white" : "black"}
+                      type="Ionicons"
+                    />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ ...styles.btnSection }}
+                    onPress={() => {
+                      this.toConverting();
+                    }}
+                  >
+                    <Text style={styles.btnText}>Apply</Text>
+                  </TouchableOpacity>
+                </View>
               </Animated.View>
             )}
             {this.state.display === CONVERTING && (
